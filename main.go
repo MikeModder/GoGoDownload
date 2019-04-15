@@ -39,6 +39,8 @@ func init() {
 
 	flag.Parse()
 
+	fmt.Printf("GoGoDownload - A tool to download anime from GoGoAnime\nVersion %s (%s) built %s\n", Version, GitCommit, BuildDate)
+
 	if startEp == 0 {
 		fmt.Println("[error] you must specify a starting episode with --start!")
 		os.Exit(1)
@@ -56,8 +58,6 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("\tGoGoDownload\nVersion %s (%s) built %s\n", Version, GitCommit, BuildDate)
-
 	seriesURL := os.Args[1]
 
 	startEp, err := strconv.Atoi(os.Args[2])
