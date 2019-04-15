@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -58,33 +57,19 @@ func init() {
 }
 
 func main() {
-	seriesURL := os.Args[1]
-
-	startEp, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		fmt.Printf("[error] %s is not a valid number!\n", os.Args[2])
-		os.Exit(1)
-	}
-
-	endEp, err := strconv.Atoi(os.Args[3])
-	if err != nil {
-		fmt.Printf("[error] %s is not a valid number!\n", os.Args[2])
-		os.Exit(1)
-	}
-
 	fmt.Printf("Downloading episode %d-%d of %s\n", startEp, endEp, seriesURL)
 
 	slug := strings.Split(seriesURL, "/")[4]
 
 	for i := startEp; i < endEp+1; i++ {
 		fmt.Printf("[info] scraping episode %d\n", i)
-		gga, title, err := getRapidVideoLink(fmt.Sprintf(urlString, slug, i))
+		rv, title, err := getRapidVideoLink(fmt.Sprintf(urlString, slug, i))
 		if err != nil {
 			fmt.Printf("[error] failed to parse GGA for episode %d: %v\n", i, err)
 			continue
 		}
 
-		mp4, err := getMp4FromRapidVideo(gga)
+		mp4, err := getMp4FromRapidVideo(fmt.Sprintf("%s?q=%s", rv, quality))
 		if err != nil {
 			fmt.Printf("[error] failed to get mp4 for episode %d: %s\n", i, err)
 		}
