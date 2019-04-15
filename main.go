@@ -8,6 +8,7 @@ import (
 	neturl "net/url"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strings"
 
@@ -66,6 +67,12 @@ func main() {
 
 	slug := strings.Split(seriesURL, "/")[4]
 
+	err := mkdir(slug)
+	if err != nil {
+		fmt.Printf("[error] failed to create a directory (%s) to download into: %v\n", slug, err)
+		os.Exit(1)
+	}
+
 	for i := startEp; i < endEp+1; i++ {
 		fmt.Printf("[info] scraping episode %d\n", i)
 		rv, title, err := getRapidVideoLink(fmt.Sprintf(urlString, slug, i))
@@ -81,7 +88,7 @@ func main() {
 
 		fmt.Printf("[info] downloading episode %d to '%s.mp4'\n", i, cleanName(title))
 
-		c := exec.Command("aria2c", mp4, "-x", "4", "-o", fmt.Sprintf("%s.mp4", cleanName(title)))
+		c := exec.Command("aria2c", mp4, "-x", "4", "-o", path.Join(slug, fmt.Sprintf("%s.mp4", cleanName(title))))
 		c.Stderr = os.Stderr
 		c.Stdout = os.Stdout
 		c.Stdin = os.Stdin
@@ -150,4 +157,15 @@ func getMp4FromRapidVideo(url string) (string, error) {
 
 func cleanName(name string) string {
 	return reSanitize.ReplaceAllString(name, "_")
+}
+
+// Stolen from https://github.com/JoshuaDoes/miitomo-assetscraper/blob/b11c5c9b21fb78eeb1f4cceb60be2e62ff399609/main.go#L254-L262
+func mkdir(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0777)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
