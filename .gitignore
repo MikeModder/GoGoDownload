@@ -2,3 +2,4 @@
 *.exe
 *.aria2
 GoGoDownload
+out/*

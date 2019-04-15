@@ -1,0 +1,27 @@
+language: go
+go:
+- stable
+
+install:
+- go get github.com/JoshuaDoes/govvv
+- go get github.com/PuerkitoBio/goquery
+- which govvv
+- mkdir out/
+
+script: "./build.sh"
+
+before_deploy:
+- git config user.name "MikeModder"
+- git config user.email "oddman56@protonmail.com"
+
+deploy:
+  provider: releases
+  api_key:
+    secure: ZKBDj7aAfwK2PiKxXm4YljakbwRl6t8OPp4YI1oEMH1gU8uiWKPOmFwavx9zAfvXN07JQGnTqcJRSdKf2rf7eNoQba0HLJ6DMLC04ExyqdX5nUBkQUSmTYPT4qDsUR+gfk1rRCt0hojjOVYQoGicQd2xruxYDO8MG14tYuNeMMRoqCl/NRGNysb+lR0gdHxuwmn4ORps+H5YBl9JTP2ge83sLX/Py1bjPc8GJXX2zru7a46oeFb9VFeEpbIbOkHjSVuvVQiNUzyFj0DZZ+TK1oSRUzLdbHh5D6JWar2esnz0MQjERzG4NFOnEyyQFNeCiPzzEWXjeyf95glFhiRmJexrUgIXu1hBzTpJ+TBNlEO9GIaIgX+CN1czOZIGaK0PClCq2Cqhj2D0IHjdwqJw0ChB7PqiNfs713nfFft0X9fYSWJfl32dw5t6eeRTSUMR1sFy5+iD2yurtn77oFsgiF2CqIwC+zBYorG22XuI4ZRCMDZp/JxtTr4/Sm8tUj7aeBeJ1z33qKxyuIa0Qc+92+18EoFANCbCBuUi9qDG8cNLL7zElVXw+PmAC9R6kCMMZ+Fvdtf7vWrUB4Cpl4fW8Ob5SkoG5UFE43zE1ggcBoUokZ1IMGPCMlwYgNira7Ci2/jCbzXRVzhsz1hFVZ3G6pyUiAyffI2Lo8mHUliYOag=
+  skip_cleanup: true
+  file_glob: true
+  file: out/*
+  draft: true
+  on:
+    repo: MikeModder/GoGoDownload
+    tags: true
