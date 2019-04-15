@@ -17,11 +17,12 @@ import (
 
 var (
 	// URL format for GoGoAnime episodes
-	urlString = "https://www5.gogoanime.tv/%s-episode-%d"
+	urlString = "https://www5.gogoanime.tv/%s-episode-%s"
 
 	// regex to find the anime name and remove special characters
 	reAnimeName = regexp.MustCompile("https://vidstream.co/download\\?id=[\\w=]+&typesub=[\\w-]+&title=(.*)")
 	reSanitize  = regexp.MustCompile("[^a-zA-Z0-9\\s-_]+")
+	reEpisodeNumber = regexp.MustCompile("[\\w-]+-episode-([\\d-]+)")
 
 	// Variables for command line arguments
 	startEp, endEp int
@@ -63,32 +64,52 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("Downloading episode %d-%d of %s\n", startEp, endEp, seriesURL)
-
 	slug := strings.Split(seriesURL, "/")[4]
 
-	err := mkdir(slug)
+	id, title, err := getAnimeInfoFromCategoryPage(seriesURL)
 	if err != nil {
-		fmt.Printf("[error] failed to create a directory (%s) to download into: %v\n", slug, err)
+		fmt.Printf("[error] failed to get anime id from %s: %v\n", seriesURL, err)
+		os.Exit(1)
+	}
+	seriesTitle := cleanName(title)
+
+	eps, err := getEpisodesForID(id)
+	if err != nil {
+		fmt.Printf("[error] failed to get episodes: %v\n", err)
 		os.Exit(1)
 	}
 
+	err = mkdir(seriesTitle)
+	if err != nil {
+		fmt.Printf("[error] failed to create a directory (%s) to download into: %v\n", seriesTitle, err)
+		os.Exit(1)
+	}
+
+	// Make sure startEp and endEp are within bounds
+	if endEp > len(eps) || startEp > len(eps) {
+		fmt.Printf("[error] series %s does not have %d episodes, try a lower number!\n", title, endEp)
+		os.Exit(1)
+	}
+
+	fmt.Printf("[info] downloading %s ep %d-%d (%d total episodes)\n", title, startEp, endEp, len(eps))
+
 	for i := startEp; i < endEp+1; i++ {
-		fmt.Printf("[info] scraping episode %d\n", i)
-		rv, title, err := getRapidVideoLink(fmt.Sprintf(urlString, slug, i))
+		ep := eps[i]
+		fmt.Printf("[info] scraping episode %s\n", ep)
+		rv, title, err := getRapidVideoLink(fmt.Sprintf(urlString, slug, ep))
 		if err != nil {
-			fmt.Printf("[error] failed to parse GGA for episode %d: %v\n", i, err)
+			fmt.Printf("[error] failed to parse GGA for episode %s: %v\n", ep, err)
 			continue
 		}
 
 		mp4, err := getMp4FromRapidVideo(fmt.Sprintf("%s?q=%s", rv, quality))
 		if err != nil {
-			fmt.Printf("[error] failed to get mp4 for episode %d: %s\n", i, err)
+			fmt.Printf("[error] failed to get mp4 for episode %s: %s\n", ep, err)
 		}
 
-		fmt.Printf("[info] downloading episode %d to '%s.mp4'\n", i, cleanName(title))
+		fmt.Printf("[info] downloading episode %s to '%s.mp4'\n", ep, cleanName(title))
 
-		c := exec.Command("aria2c", mp4, "-x", "4", "-o", path.Join(slug, fmt.Sprintf("%s.mp4", cleanName(title))))
+		c := exec.Command("aria2c", mp4, "-x", "4", "-o", path.Join(seriesTitle, fmt.Sprintf("%s.mp4", cleanName(title))))
 		c.Stderr = os.Stderr
 		c.Stdout = os.Stdout
 		c.Stdin = os.Stdin
@@ -155,28 +176,30 @@ func getMp4FromRapidVideo(url string) (string, error) {
 	return url, nil
 }
 
-func getAnimeIDFromCategoryPage(url string) (string, error) {
+func getAnimeInfoFromCategoryPage(url string) (string, string, error) {
 	page, err := http.Get(url)
 	if err != nil {
-		return  "", err
+		return  "", "", err
 	}
 	defer page.Body.Close()
 
 	if page.StatusCode != 200 {
-		return "", errors.New("status code not 200 ok")
+		return "", "", errors.New("status code not 200 ok")
 	}
 
 	doc, err := goquery.NewDocumentFromReader(page.Body)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	id, has := doc.Find(".movie_id").Attr("value")
 	if !has {
-		return "", errors.New("failed to get movie id from gga page")
+		return "", "", errors.New("failed to get movie id from gga page")
 	}
 
-	return id, nil
+	title := doc.Find(".anime_info_body_bg").Find("h1").Text()
+
+	return id, title, nil
 }
 
 func getEpisodesForID(id string) ([]string, error) {
@@ -199,7 +222,7 @@ func getEpisodesForID(id string) ([]string, error) {
 	var urls []string
 	doc.Find("li a").Each(func(i int, s *goquery.Selection) {
 		u, _ := s.Attr("href")
-		urls = append(urls, u)
+		urls = append(urls, reEpisodeNumber.FindStringSubmatch(u)[1])
 	})
 
 	return reverse(urls), nil
