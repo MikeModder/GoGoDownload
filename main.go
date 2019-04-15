@@ -155,6 +155,56 @@ func getMp4FromRapidVideo(url string) (string, error) {
 	return url, nil
 }
 
+func getAnimeIDFromCategoryPage(url string) (string, error) {
+	page, err := http.Get(url)
+	if err != nil {
+		return  "", err
+	}
+	defer page.Body.Close()
+
+	if page.StatusCode != 200 {
+		return "", errors.New("status code not 200 ok")
+	}
+
+	doc, err := goquery.NewDocumentFromReader(page.Body)
+	if err != nil {
+		return "", err
+	}
+
+	id, has := doc.Find(".movie_id").Attr("value")
+	if !has {
+		return "", errors.New("failed to get movie id from gga page")
+	}
+
+	return id, nil
+}
+
+func getEpisodesForID(id string) ([]string, error) {
+	url := fmt.Sprintf("https://ajax.apimovie.xyz/ajax/load-list-episode?ep_start=0&ep_end=9999&id=%s", id)
+	page, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer page.Body.Close()
+
+	if page.StatusCode != 200 {
+		return nil, errors.New("status code not 200 ok")
+	}
+
+	doc, err := goquery.NewDocumentFromReader(page.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var urls []string
+	doc.Find("li a").Each(func(i int, s *goquery.Selection) {
+		u, _ := s.Attr("href")
+		urls = append(urls, u)
+	})
+
+	return reverse(urls), nil
+}
+
 func cleanName(name string) string {
 	return reSanitize.ReplaceAllString(name, "_")
 }
@@ -168,4 +218,12 @@ func mkdir(dir string) error {
 		}
 	}
 	return nil
+}
+
+// Stolen from http://golangcookbook.com/chapters/arrays/reverse/
+func reverse(in []string) []string {
+	for i, j := 0, len(in)-1; i < j; i, j = i+1, j-1 {
+		in[i], in[j] = in[j], in[i]
+	}
+	return in
 }
