@@ -19,7 +19,7 @@ var (
 	urlString = "https://www5.gogoanime.tv/%s-episode-%d"
 
 	// regex to find the anime name and remove special characters
-	reAnimeName = regexp.MustCompile("https://vidstream.co/download\\?id=\\w+&typesub=[\\w-]+&title=(.*)")
+	reAnimeName = regexp.MustCompile("https://vidstream.co/download\\?id=[\\w=]+&typesub=[\\w-]+&title=(.*)")
 	reSanitize  = regexp.MustCompile("[^a-zA-Z0-9\\s-_]+")
 
 	// Variables for command line arguments
@@ -110,7 +110,7 @@ func getRapidVideoLink(url string) (string, string, error) {
 		return "", "", errors.New("could not find anime title")
 	}
 
-	//fmt.Printf("%v", reAnimeName.FindStringSubmatch(titleRaw))
+	//fmt.Printf("name: %v\n", reAnimeName.FindStringSubmatch(titleRaw))
 	title, err := neturl.QueryUnescape(reAnimeName.FindStringSubmatch(titleRaw)[1])
 	if err != nil {
 		return "", "", err
