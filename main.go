@@ -32,26 +32,31 @@ var (
 
 func init() {
 	flag.StringVar(&seriesURL, "series", "", "GoGoAnime category page for the anime you want to download")
-	flag.IntVar(&startEp, "start", 0, "First episode to download")
-	flag.IntVar(&endEp, "end", 0, "Last episode to download")
+	flag.IntVar(&startEp, "start", -1, "First episode to download")
+	flag.IntVar(&endEp, "end", -1, "Last episode to download")
 	flag.StringVar(&quality, "quality", "720p", "Quality of video to download (one of 480p, 720p, 1080p)")
 
 	flag.Parse()
 
 	fmt.Printf("GoGoDownload - A tool to download anime from GoGoAnime\nVersion %s (%s) built %s\n", Version, GitCommit, BuildDate)
 
-	if startEp == 0 {
+	if seriesURL == "" {
+		fmt.Println("[error] you must specify a series page with --series!")
+		os.Exit(1)
+	}
+
+	if startEp == -1 {
 		fmt.Println("[error] you must specify a starting episode with --start!")
 		os.Exit(1)
 	}
 
-	if endEp == 0 {
+	if endEp == -1 {
 		fmt.Println("[error] you must specify a ending episode with --end!")
 		os.Exit(1)
 	}
 
-	if seriesURL == "" {
-		fmt.Println("[error] you must specify a series page with --series!")
+	if quality != "480p" && quality != "720p" && quality != "1080p" {
+		fmt.Println("[error] you must specify a valid quality (one of '480p', '720p' or '1080p'")
 		os.Exit(1)
 	}
 }
