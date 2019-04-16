@@ -86,12 +86,12 @@ func main() {
 	}
 
 	// Make sure startEp and endEp are within bounds
-	if endEp > len(eps) || startEp > len(eps) {
+	if endEp > len(eps)-1 || startEp > len(eps)-1 {
 		fmt.Printf("[error] series %s does not have %d episodes, try a lower number!\n", title, endEp)
 		os.Exit(1)
 	}
 
-	fmt.Printf("[info] downloading %s ep %d-%d (%d total episodes)\n", title, startEp, endEp, len(eps))
+	fmt.Printf("[info] downloading %s ep %d-%d (%d total episodes)\n", title, startEp, endEp, len(eps)-1)
 
 	for i := startEp; i < endEp+1; i++ {
 		ep := eps[i]
