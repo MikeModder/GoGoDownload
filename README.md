@@ -1,6 +1,6 @@
 
 # GoGoDownload
-> A tool for downloading anime from GoGoAnime
+> A tool for downloading anime from GoGoAnime [![Build Status](https://travis-ci.org/MikeModder/GoGoDownload.svg?branch=master)](https://travis-ci.org/MikeModder/GoGoDownload)
 ## What is GoGoDownload?
 As mentioned above GoGoDownload is a tool written to aid users in the process of downloading anime from gogoanime.tv. GGD scrapes each of the episode's pages and extracts the mp4 link for you, then automatically starts downloading them with [aria2](https://aria2.github.io/).
 ## Usage
