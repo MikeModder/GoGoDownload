@@ -25,8 +25,9 @@ var (
 	reEpisodeNumber = regexp.MustCompile("[\\w-]+-episode-([\\d-]+)")
 
 	// Variables for command line arguments
-	startEp, endEp int
+	startEp, endEp, downloadThreads int
 	seriesURL, quality string
+	debug, dryRun bool
 
 	// Variables for govvv
 	GitCommit, BuildDate, Version string
@@ -34,9 +35,12 @@ var (
 
 func init() {
 	flag.StringVar(&seriesURL, "series", "", "GoGoAnime category page for the anime you want to download")
+	flag.StringVar(&quality, "quality", "720p", "Quality of video to download (one of 480p, 720p, 1080p)")
+	flag.IntVar(&downloadThreads, "threads", 4, "Threads to use for aria2 download")
 	flag.IntVar(&startEp, "start", -1, "First episode to download")
 	flag.IntVar(&endEp, "end", -1, "Last episode to download")
-	flag.StringVar(&quality, "quality", "720p", "Quality of video to download (one of 480p, 720p, 1080p)")
+	flag.BoolVar(&debug, "debug", false, "Debug mode prints all sorts of garbage to your console")
+	flag.BoolVar(&dryRun, "dryrun", false, "Don't actually download anything")
 
 	flag.Parse()
 
@@ -64,13 +68,17 @@ func init() {
 }
 
 func main() {
-	slug := strings.Split(seriesURL, "/")[4]
+	if dryRun {
+		fmt.Println("[info] Doing a dry-run, no files will be downloaded!")
+	}
 
+	slug := strings.Split(seriesURL, "/")[4]
 	id, title, err := getAnimeInfoFromCategoryPage(seriesURL)
 	if err != nil {
 		fmt.Printf("[error] failed to get anime id from %s: %v\n", seriesURL, err)
 		os.Exit(1)
 	}
+	debugPrint("[id: '%s', title: '%s']\n", id, title)
 	seriesTitle := cleanName(title)
 
 	eps, err := getEpisodesForID(id)
@@ -78,6 +86,7 @@ func main() {
 		fmt.Printf("[error] failed to get episodes: %v\n", err)
 		os.Exit(1)
 	}
+	debugPrint("[episodes: %v]", eps)
 
 	err = mkdir(seriesTitle)
 	if err != nil {
@@ -101,15 +110,22 @@ func main() {
 			fmt.Printf("[error] failed to parse GGA for episode %s: %v\n", ep, err)
 			continue
 		}
+		debugPrint("[rv: '%s', title: '%s']\n", rv, title)
 
 		mp4, err := getMp4FromRapidVideo(fmt.Sprintf("%s?q=%s", rv, quality))
 		if err != nil {
 			fmt.Printf("[error] failed to get mp4 for episode %s: %s\n", ep, err)
+			os.Exit(1)
 		}
+		debugPrint("[mp4: '%s']\n", mp4)
 
 		fmt.Printf("[info] downloading episode %s to '%s.mp4'\n", ep, cleanName(title))
 
-		c := exec.Command("aria2c", mp4, "-x", "4", "-o", path.Join(seriesTitle, fmt.Sprintf("%s.mp4", cleanName(title))))
+		if dryRun {
+			continue
+		}
+
+		c := exec.Command("aria2c", mp4, "-x", string(downloadThreads), "-o", path.Join(seriesTitle, fmt.Sprintf("%s.mp4", title)))
 		c.Stderr = os.Stderr
 		c.Stdout = os.Stdout
 		c.Stdin = os.Stdin
@@ -170,7 +186,15 @@ func getMp4FromRapidVideo(url string) (string, error) {
 
 	url, has := doc.Find("source").First().Attr("src")
 	if !has {
-		return "", errors.New("failed to get URL from rapidvideo")
+		// It doesn't have it in our selected resolution, so run again with a different res (scraped from the rv page)
+		url, has = doc.Find("#home_video > div:nth-of-type(2) > a:last-of-type").Attr("href")
+		if !has {
+			return "", errors.New("failed to get URL from rapidvideo")
+		}
+		debugPrint("retrying mp4 scrape with new url: %s\n", url)
+		fmt.Println("[info] episode was not available in the requested quality, trying a lower one")
+		
+		return getMp4FromRapidVideo(url)
 	}
 
 	return url, nil
@@ -249,4 +273,10 @@ func reverse(in []string) []string {
 		in[i], in[j] = in[j], in[i]
 	}
 	return in
+}
+
+func debugPrint(s string, a ...interface{}) {
+	if debug {
+		fmt.Println("[debug]", fmt.Sprintf(s, a))
+	}
 }
