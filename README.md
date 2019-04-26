@@ -8,8 +8,10 @@ As mentioned above GoGoDownload is a tool written to aid users in the process of
 
 Using GGD is pretty simple. Download the binary for your system and then run is like this
 ```
-./GoGoDownload <series url> 1 12
+./GoGoDownload --series <series url> --start 0 --end 11
 ```
+> Note: episodes start at 0. Unless the series was a episode 0, 0 will refer to episode 1, and 11 will refer to episode 12.
+
 This will download episodes 1 through 12 of the anime you provided. Currently GGD does not support searching for anime, as such a GoGoAnime link is required.
 ## Todo
 These are some things I want to eventually add to this tool
