@@ -2,14 +2,15 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"flag"
+	"fmt"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -20,14 +21,14 @@ var (
 	urlString = "https://www5.gogoanime.tv/%s-episode-%s"
 
 	// regex to find the anime name and remove special characters
-	reAnimeName = regexp.MustCompile("https://vidstream.co/download\\?id=[\\w=]+&typesub=[\\w-]+&title=(.*)")
-	reSanitize  = regexp.MustCompile("[^a-zA-Z0-9\\s-_]+")
+	reAnimeName     = regexp.MustCompile("https://vidstream.co/download\\?id=[\\w=]+&typesub=[\\w-]+&title=(.*)")
+	reSanitize      = regexp.MustCompile("[^a-zA-Z0-9\\s-_]+")
 	reEpisodeNumber = regexp.MustCompile("[\\w-]+-episode-([\\d-]+)")
 
 	// Variables for command line arguments
 	startEp, endEp, downloadThreads int
-	seriesURL, quality string
-	debug, dryRun bool
+	seriesURL, quality              string
+	debug, dryRun                   bool
 
 	// Variables for govvv
 	GitCommit, BuildDate, Version string
@@ -125,7 +126,7 @@ func main() {
 			continue
 		}
 
-		c := exec.Command("aria2c", mp4, "-x", string(downloadThreads), "-o", path.Join(seriesTitle, fmt.Sprintf("%s.mp4", title)))
+		c := exec.Command("aria2c", mp4, "-x", strconv.Itoa(downloadThreads), "-o", path.Join(seriesTitle, fmt.Sprintf("%s.mp4", title)))
 		c.Stderr = os.Stderr
 		c.Stdout = os.Stdout
 		c.Stdin = os.Stdin
@@ -193,7 +194,7 @@ func getMp4FromRapidVideo(url string) (string, error) {
 		}
 		debugPrint("retrying mp4 scrape with new url: %s\n", url)
 		fmt.Println("[info] episode was not available in the requested quality, trying a lower one")
-		
+
 		return getMp4FromRapidVideo(url)
 	}
 
@@ -203,7 +204,7 @@ func getMp4FromRapidVideo(url string) (string, error) {
 func getAnimeInfoFromCategoryPage(url string) (string, string, error) {
 	page, err := http.Get(url)
 	if err != nil {
-		return  "", "", err
+		return "", "", err
 	}
 	defer page.Body.Close()
 
